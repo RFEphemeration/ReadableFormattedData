@@ -1,5 +1,6 @@
 id : 5
-name : j
+#add_string_delimeter |
+name : |j|
 birthday : {
 	year : 1992
 	celebrations : {
@@ -12,9 +13,13 @@ highscores : [
 	72
 	9
 	{
-		what : test this
+		what : "test
+
+		this"
 		help : [
-			okay, what, now, [4]
+			'okay', what, now, [4]
 		]
 	}, {yas : please, no : thank you}
 ]
+
+#remove_string_delimeter |

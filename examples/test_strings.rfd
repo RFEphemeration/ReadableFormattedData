@@ -1,5 +1,5 @@
 id : 5
-name : j
+name : "j"
 birthday : {
 	year : 1992
 	celebrations : {
@@ -12,9 +12,9 @@ highscores : [
 	72
 	9
 	{
-		what : test this
+		what : "test"
 		help : [
-			okay, what, now, [4]
+			'okay', what, now, [4]
 		]
 	}, {yas : please, no : thank you}
 ]

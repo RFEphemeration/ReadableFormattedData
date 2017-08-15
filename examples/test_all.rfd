@@ -1,0 +1,118 @@
+#include_definitions "./other_definitions.rfd"
+#include_members "./other_members.rfd"
+#include_macros "./other_macros.rfd"
+#include_all "./other_definitions_and_members_and_macros.rfd"
+
+
+#begin definitions
+// definitions are put into the scope of the 
+
+@range-int(x, y):
+
+
+@Person
+
+$Person
+//Comments//
+%
+
+
+@ObjectPath : @{
+	type: path // is this (string)?
+	origin: member_parent // or file_root 
+	default: "../"
+}
+
+@Float01: @{
+	min: 0.0
+	max: 1.0
+	type: float
+}
+@Color: @{
+	one_of: [
+		// the following two are equivalent
+		@{	type: object
+			member_types: @Float01
+			member_required_keys: [r, g, b]
+			member_optional_keys: [a]
+		},
+		{	r: @Float01
+			g: @Float01
+			b: @Float01
+			a[optional]: @Float01
+		},
+		@{	type: array
+			element_types: @Float01
+		},
+		@{	type: string
+			regex: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8}|[A-Fa-f0-9]{3}|[A-Fa-f0-9]{4})$"
+		}
+	]
+}
+
+@black: @Color #000
+
+@Employee: @Person @{
+
+}
+
+@Name: @{
+	type: string
+	require_override: true	
+}
+
+
+
+@Person[meets_requirements_of_any(@Employee, @Civilian)]:
+{
+	firstName: @{
+		default: "Jack"
+		type: string
+		require_override: true
+	}
+	lastName: "Sprat"
+	age[range(0, inf), override_required]: 1
+}
+
+
+@header-color: { r: 1, g: 1, b: 1}
+
+@default-database: { entrysize: 0, entries: []}
+
+#end definitions
+
+#begin members
+
+database: @default-database {
+	entrysize: 1
+	entries:
+	[
+		{	id: 10
+			idea: "yesterday's news"
+			color: @header-color
+			points:
+			[
+				10
+				15
+				32
+			]
+		},
+	
+	]
+}
+
+#begin ignore_type_checking
+
+database.entry :
+{
+	id : 10
+}
+
+database :
+{
+
+} 
+
+#end ignore_type_checking
+
+#end members
