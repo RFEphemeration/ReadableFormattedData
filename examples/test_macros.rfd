@@ -23,3 +23,7 @@ highscores : [
 ]
 
 #remove_string_delimeter |
+
+extra : {
+#include_all ../examples/test_strings.rfd
+}
