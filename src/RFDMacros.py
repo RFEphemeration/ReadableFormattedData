@@ -1,4 +1,4 @@
-from RFDUtilityFunctions import MakeFilePath, SplitFilePath
+from RFDUtilityFunctions import ProtectedSymbols, MakeFilePath, SplitFilePath
 
 def AddStringDelimeter(context, arguments):
 	for delimeter in arguments:
@@ -6,7 +6,8 @@ def AddStringDelimeter(context, arguments):
 
 def RemoveStringDelimeter(context, arguments):
 	for delimeter in arguments:
-		context.potential_string_delimeters.remove(delimeter)
+		if (not delimeter in ProtectedSymbols):
+			context.potential_string_delimeters.remove(delimeter)
 
 def IncludeAll(context, arguments):
 	file_path, file_name = SplitFilePath(arguments[0])

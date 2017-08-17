@@ -7,6 +7,7 @@ birthday : {
 		pie : true
 	}
 }
+weakness: 2.0
 test: {yas : please, no : thank you}
 highscores : [
 	100
