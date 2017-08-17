@@ -198,9 +198,8 @@ def StepContextEOF(context):
 		if ('eof' in StepDelta[context_type]):
 			StepDelta[context_type]['eof'](context)
 
-def ParseRFDString(contents):
-	context = Context()
-	context.remainder = contents
+def ParseRFDString(path, contents):
+	context = Context(path, contents)
 	while (context.remainder):
 		StepContext(context)
 	StepContextEOF(context)
@@ -214,4 +213,4 @@ def ParseRFDFile(location):
 	f = open (location, 'r')
 	remainder = f.read()
 
-	return ParseRFDString(remainder)
+	return ParseRFDString(location, remainder)

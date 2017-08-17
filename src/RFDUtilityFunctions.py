@@ -5,7 +5,7 @@ def LogVerbose(output):
 	pprint.pprint(output)
 	pass
 
-def MakePath(array):
+def MakeObjectPath(array):
 	path = ""
 	if (len(array) == 0):
 		return path
@@ -13,6 +13,20 @@ def MakePath(array):
 		path = path + str(item) + "."
 	path = path + str(array[-1])
 	return path
+
+def SplitFilePath(path):
+	file_path_and_name = path.rsplit('/', 1)
+	file_path = ''
+	file_name = ''
+	if (len(file_path_and_name) > 1):
+		file_path = file_path_and_name[0] + '/'
+		file_name = file_path_and_name[1]
+	else:
+		file_name = file_path_and_name[0]
+	return file_path, file_name
+
+def MakeFilePath(array):
+	return ('').join(array)
 
 def GetInteger(v):
 	try:
