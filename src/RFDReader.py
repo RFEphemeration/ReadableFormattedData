@@ -14,7 +14,11 @@ def EndMacro(context):
 	if (len(command) > 1):
 		arguments = command[1:]
 	command = command[0]
-	ExecuteMacro(context, command, arguments)
+	valid_command = ExecuteMacro(context, command, arguments)
+	if (not valid_command):
+		# RMF TODO: @Incomplete this should probably be a parse value?
+		# do we want to enable this relatively ambiguous syntax?
+		pass
 
 def StepMacro(context):
 	context.value_buffer += context.next_char

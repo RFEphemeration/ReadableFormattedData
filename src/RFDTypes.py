@@ -8,11 +8,39 @@ class Contexts():
 	String = 'String'
 	ParseValue = 'ParseValue'
 	PropertyName = 'PropertyName'
-	Definition = 'Definition'
+	DefinitionAmbigious = 'DefinitionAmbiguous'
+	DefinitionName = 'DefinitionName'
+	DefinitionExample = 'DefinitionExample'
+	DefinitionDescription = 'DefinitionDescription'
+	DefinitionReference = 'DefinitionReference'
 	Macro = 'Macro'
+
+	All = 'All'
+
 	MultilineString = 'MultilineString'
 	ParserSkip = 'ParserSkip'
-	All = 'All'
+
+class FileStackLocation():
+	def __init__(self, file_location, file_name, file_contents):
+		self.file_location = file_location
+		self.file_name = file_name
+		self.remaining_text = file_contents
+		self.line_number
+
+	def ReadNextChar(self):
+		if (not self.remaining_text):
+			return None
+		next_char = self.remaining_text[0]
+		try:
+			self.remaining_text = self.remaining_text[1:]
+		except:
+			self.remaining_text = ''
+		return next_char
+
+class ObjectStackLocation():
+	def __init__(self, context_type, object_location, file_location):
+		self.context_type = context_type
+		self.object_location = object_location
 
 class Context():
 	def __init__(self, path, contents):
@@ -33,6 +61,7 @@ class Context():
 		self.potential_string_delimeters = ['"', '\'']
 		file_path, file_name = SplitFilePath(path)
 		self.PushFilePath(file_path, len(contents))
+		self.in_definition = False
 
 	def PopContextType(self, context_type):
 		if (len(self.type_stack) == 0):
@@ -57,11 +86,14 @@ class Context():
 		self.file_stack_pop_char_number.append(self.char_number + length)
 
 	def ReadNextChar(self):
-		if (not self.remainder):
+		self.prev_char = self.next_char
+		if (not self.file_stack):
 			self.next_char = None
 			return
-		self.prev_char = self.next_char
-		self.next_char = self.remainder[0]
+		self.next_char = self.file_stack[-1].ReadNextChar()
+		if (self.next_char == None):
+			self.next_char = '\n'
+
 		self.char_number += 1
 		if (len(self.file_stack_pop_char_number) > 0
 			and self.char_number >= self.file_stack_pop_char_number[-1]):

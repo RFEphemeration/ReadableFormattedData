@@ -27,3 +27,6 @@ MacroFunctions = {
 def ExecuteMacro(context, command, arguments):
 	if (command in MacroFunctions):
 		MacroFunctions[command](context, arguments)
+		return True
+	else:
+		return False
