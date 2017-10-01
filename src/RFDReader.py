@@ -25,11 +25,11 @@ def StepMacro(context):
 
 def BeginValue(context):
 	context.PrintFunctionEnter("BeginValue")
-	if (context.type_stack[-1] == Contexts.Object):
+	if (context.context_stack[-1] == Contexts.Object):
 		# do we need to append to the location stack for objects?
 		# or should this be done in EndPropertyName
 		pass
-	elif (context.type_stack[-1] == Contexts.Array):
+	elif (context.context_stack[-1] == Contexts.Array):
 		current_array = context.GetChildAtLocation()
 		new_location = len(current_array)
 		context.location_stack.append(new_location)
@@ -175,7 +175,7 @@ StepDelta = {
 
 def StepContext(context):
 	next_char = context.ReadNextChar()
-	context_type = context.type_stack[-1]
+	context_type = context.context_stack[-1]
 	
 	if (context_type != context.last_context):
 		#LogVerbose("Context: " + context_type)
@@ -194,7 +194,7 @@ def StepContext(context):
 			StepDelta[context_type]['default'](context)
 
 def StepContextEOF(context):
-	context_type = context.type_stack[-1]
+	context_type = context.context_stack[-1]
 	if (context_type != context.last_context):
 		#LogVerbose("Context: " + context_type)
 		context.last_context = context_type
@@ -209,7 +209,7 @@ def ParseRFDString(path, contents):
 	StepContextEOF(context)
 	if (len(context.location_stack) > 0):
 		LogError("Location Stack isn't empty")
-	if (len(context.type_stack) != 1):
+	if (len(context.context_stack) != 1):
 		LogError("Context Stack hasn't returned to just object")
 	return context.loaded_object
 
