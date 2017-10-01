@@ -70,6 +70,40 @@ def EndPropertyName(context):
 	context.value_buffer = ''
 	context.location_stack.append(new_location)
 
+''' #@rmf todo: unfinished, doing references first
+def BeginTypeName(context):
+	context.PrintFunctionEnter("BeginTypeName")
+	context.PushContextType(Contexts.TypeName)
+	context.value_buffer = ''
+
+def IncrementTypeName(context):
+	context.value_buffer += context.next_char
+
+def EndTypeName(context):
+	#@rmf todo: insert type into dictionary?
+	context.PrintFunctionEnter("EndTypeName")
+	context.PopContextType(Contexts.TypeName)
+	new_location = context.value_buffer.strip()
+	context.value_buffer = ''
+	context.location_stack.append(new_location)
+
+def BeginTypeDefinition(context):
+	context.PrintFunctionEnter("BeginTypeDefinition")
+	context.PushContextType(Contexts.TypeDefinition)
+	context.value_buffer = ''
+'''
+
+def BeginReferenceName(context):
+	context.PrintFunctionEnter("BeginReferenceName")
+	context.PushContextType(Contexts.ReferenceName)
+	context.value_buffer = ''
+
+def StepReferenceName(context):
+	context.value_buffer += context.next_char
+
+def EndReferenceName(context):
+	pass
+
 def BeginParseValue(context):
 	context.PrintFunctionEnter("BeginParseValue")
 	context.PushContextType(Contexts.ParseValue)
@@ -130,6 +164,8 @@ StepDelta = {
 		'\n': DoNothing,
 		'}' : EndObject,
 		'#' : BeginMacro,
+		#'.' : BeginTypeName,
+		'@' : BeginReferenceName,
 		'default' : BeginPropertyName
 	},
 	Contexts.Array : {
@@ -155,17 +191,17 @@ StepDelta = {
 		'\t': DoNothing,
 		'{' : BeginObject,
 		'[' : BeginArray,
-		'\n' : EndValue,
 		',' : EndValue,
+		'\n' : EndValue,
 		'eof': EndValue,
-		'}' : lambda context: (EndValue(context), EndObject(context)),
-		']' : lambda context: (EndValue(context), EndArray(context)),
+		'}' : lambda context: (EndObject(context), EndValue(context)),
+		']' : lambda context: (EndArray(context), EndValue(context)),
 		'potential_string_delimeter': BeginString,
 		'default': BeginParseValue
 	},
 	Contexts.ParseValue : {
-		'\n' : lambda context: (EndParseValue(context), EndValue(context)),
 		',' : lambda context: (EndParseValue(context), EndValue(context)),
+		'\n' : lambda context: (EndParseValue(context), EndValue(context)),
 		'eof': lambda context: (EndParseValue(context), EndValue(context)),
 		'}' : lambda context: (EndParseValue(context), EndValue(context), EndObject(context)),
 		']' : lambda context: (EndParseValue(context), EndValue(context), EndArray(context)),

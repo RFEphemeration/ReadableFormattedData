@@ -92,7 +92,7 @@ def ArrayLengthAndTypeOrdersMatch(array1, array2):
 
 	return True
 
-def Validate(test_node, definition_node):
+def Validate(test_node, definition_node, definition_additional):
 	if test_node.type != definition_node.type:
 		return False
 	if test_node.type in BasicTypes:
@@ -113,6 +113,7 @@ def Validate(test_node, definition_node):
 					# an empty array example just means type array
 					return True
 				else:
+					# it returns which type the definition is, compare with test type
 					test_array_type = IsArrayOfSingleType(test_node.value)
 					return test_array_type == definition_array_type
 		else:
@@ -141,6 +142,7 @@ def PartialValidateByDefinition(node, definition, unvalidated_children):
 
 def PartialValidateByExample(node, example, unvalidated_children):
 	unvalidated_children = node.value.keys()
+	validated_children = []
 	valid = True
 
 	for key, child_example in example.iteritems():
@@ -154,7 +156,10 @@ def PartialValidateByExample(node, example, unvalidated_children):
 		if child_node.type == NodeTypes.Object:
 			if (Validate(child_node, child_example)):
 				unvalidated_children.pop(key)
+				validated_children.append(key)
+				# RMF TODO: @Incomplete may still be invalid due to definition
 			else:
+				# RMF TODO: @Incomplete may still be valid due to definition
 				valid = False
 		elif child_node.type == NodeTypes.Array:
 			# RMF TODO: @Incomplete array examples are not handled / well defined. what do we imply? that the types of the children are the same and the length is the same?

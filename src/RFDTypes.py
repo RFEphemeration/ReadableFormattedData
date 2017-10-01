@@ -8,17 +8,22 @@ class Contexts():
 	String = 'String'
 	ParseValue = 'ParseValue'
 	PropertyName = 'PropertyName'
+
+	TypeName = 'TypeName'
+	TypeDefinition = 'TypeDefintion'
+	ReferenceName = 'ReferenceName'
+	ReferenceValue = 'ReferenceValue'
+
+	Macro = 'Macro'
+	All = 'All'
+	ParserSkip = 'ParserSkip'
+
 	DefinitionAmbigious = 'DefinitionAmbiguous'
 	DefinitionName = 'DefinitionName'
-	DefinitionExample = 'DefinitionExample'
 	DefinitionDescription = 'DefinitionDescription'
+	DefinitionBaseData = 'DefinitionBaseData'
 	DefinitionReference = 'DefinitionReference'
-	Macro = 'Macro'
-
-	All = 'All'
-
-	MultilineString = 'MultilineString'
-	ParserSkip = 'ParserSkip'
+	
 
 class FileStackLocation():
 	def __init__(self, file_location, file_name, file_contents):
@@ -45,7 +50,8 @@ class ObjectStackLocation():
 class Context():
 	def __init__(self, path, contents):
 		self.loaded_object = {}
-		self.type_stack = [Contexts.Object]
+		self.context_stack = [Contexts.Object]
+		self.definition_stack = [None]
 		self.location_stack = []
 		self.file_stack = []
 		self.file_stack_pop_char_number = []
@@ -64,17 +70,17 @@ class Context():
 		self.in_definition = False
 
 	def PopContextType(self, context_type):
-		if (len(self.type_stack) == 0):
+		if (len(self.context_stack) == 0):
 			LogError("Context Type Stack is empty when we were trying to pop " + context_type)
-		elif (self.type_stack[-1] != context_type):
-			LogError("Context Type Stack tried to pop type " + context_type + " but the most recent type is " + self.type_stack[-1])
+		elif (self.context_stack[-1] != context_type):
+			LogError("Context Type Stack tried to pop type " + context_type + " but the most recent type is " + self.context_stack[-1])
 		else:
 			self.PrintFunctionEnter("Pop " + context_type)
-			self.type_stack.pop()
+			self.context_stack.pop()
 
 	def PushContextType(self, context_type):
 		self.PrintFunctionEnter("Push " + context_type)
-		self.type_stack.append(context_type)
+		self.context_stack.append(context_type)
 
 	def PopFilePath(self):
 		self.file_stack.pop()
@@ -134,3 +140,6 @@ class Context():
 		for step in self.location_stack[:-1]:
 			child = child[step]
 		child[self.location_stack[-1]] = value
+
+
+
