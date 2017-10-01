@@ -1,4 +1,4 @@
-ProtectedSymbols = ['{', '}', '[', ']', ',', '\n', ':']
+ProtectedSymbols = ['{', '}', '[', ']', ',', '\n', ':', '.']
 
 def LogError(error):
 	print(error)
