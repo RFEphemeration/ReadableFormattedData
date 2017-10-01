@@ -90,7 +90,8 @@ class Context():
 		if (not self.file_stack):
 			self.next_char = None
 			return
-		self.next_char = self.file_stack[-1].ReadNextChar()
+		#self.next_char = self.file_stack[-1].ReadNextChar()
+		self.next_char = self.remainder[0]
 		if (self.next_char == None):
 			self.next_char = '\n'
 
