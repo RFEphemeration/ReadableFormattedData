@@ -80,7 +80,7 @@ $Person
 @black: @Color #000
 
 @Employee: @Person @{
-
+	delete_members: ["firstName"]
 }
 
 @Name: @{
@@ -92,6 +92,7 @@ $Person
 
 @Person[meets_requirements_of_any(@Employee, @Civilian)]:
 {
+	middleName: - //delete member syntax?
 	firstName: @{
 		default: "Jack"
 		type: string

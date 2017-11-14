@@ -55,12 +55,27 @@ def EndObject(context):
 	context.PrintFunctionEnter("EndObject")
 	context.PopContextType(Contexts.Object)
 
+def BeginBaseName(context):
+	context.PrintFunctionEnter("BeginBaseName")
+	context.PushContextType(Contexts.BaseName)
+	context.value_buffer = ''
+
+def StepBaseName(context):
+	context.value_buffer += context.next_char
+
+def EndBaseName(context):
+	context.PrintFunctionEnter("EndBaseName")
+	context.PopContextType(Contexts.BaseName)
+	new_base_name = context.value_buffer.strip()
+	context.value_buffer = ''
+	context.location_stack.append(new_location)
+
 def BeginPropertyName(context):
 	context.PrintFunctionEnter("BeginPropertyName")
 	context.PushContextType(Contexts.PropertyName)
 	context.value_buffer = context.next_char
 
-def IncrementPropertyName(context):
+def StepPropertyName(context):
 	context.value_buffer += context.next_char
 
 def EndPropertyName(context):
@@ -68,6 +83,7 @@ def EndPropertyName(context):
 	context.PopContextType(Contexts.PropertyName)
 	new_location = context.value_buffer.strip()
 	context.value_buffer = ''
+	# rmf todo: where to put this?
 	context.location_stack.append(new_location)
 
 def BeginParseValue(context):
@@ -144,7 +160,7 @@ StepDelta = {
 	},
 	Contexts.PropertyName : {
 		':' : lambda context: (EndPropertyName(context), BeginValue(context)),
-		'default' : IncrementPropertyName
+		'default' : StepPropertyName
 	},
 	Contexts.String : {
 		'active_string_delimeter': EndString,

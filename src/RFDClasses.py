@@ -38,6 +38,8 @@ class ObjectStackLocation():
 	def __init__(self, context_type, object_location, file_location):
 		self.context_type = context_type
 		self.object_location = object_location
+		self.children = {}
+		self.
 
 class Context():
 	def __init__(self, path, contents):
