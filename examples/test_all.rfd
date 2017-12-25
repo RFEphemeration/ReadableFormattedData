@@ -18,11 +18,25 @@ $Person
 //Comments//
 %
 
-
 @ObjectPath : @{
 	type: path // is this (string)?
 	origin: member_parent // or file_root 
 	default: "../"
+}
+
+@JustinsFloat: @{
+	one_of: [
+		@{
+			min:0.0
+			max:1.0
+			type:float
+		},
+		@{
+
+
+		}
+	]
+
 }
 
 @Float01: @{

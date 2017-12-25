@@ -86,6 +86,19 @@ def EndPropertyName(context):
 	# rmf todo: where to put this?
 	context.location_stack.append(new_location)
 
+def BeginPropertyStringName(context):
+	context.PrintFunctionEnter("BeginPropertyStringName")
+	context.PushContextType(Contexts.PropertyStringName)
+	context.value_buffer = ''
+	context.active_string_delimeter = context.next_char
+
+def StepPropertyStringName(context):
+	context.value_buffer += context.next_char
+
+def EndPropertyStringName(context):
+	context.PrintFunctionEnter("EndPropertyStringName")
+	context.PopContextType(Contexts.PropertyStringName)
+
 def BeginParseValue(context):
 	context.PrintFunctionEnter("BeginParseValue")
 	context.PushContextType(Contexts.ParseValue)
@@ -146,6 +159,7 @@ StepDelta = {
 		'\n': DoNothing,
 		'}' : EndObject,
 		'#' : BeginMacro,
+		'potential_string_delimeter' : lambda context: (BeginPropertyName(context), BeginPropertyStringName(context)),
 		'default' : BeginPropertyName
 	},
 	Contexts.Array : {
@@ -161,6 +175,11 @@ StepDelta = {
 	Contexts.PropertyName : {
 		':' : lambda context: (EndPropertyName(context), BeginValue(context)),
 		'default' : StepPropertyName
+	},
+	Contexts.PropertyStringName : {
+		'active_string_delimeter': EndPropertyStringName,
+		# RMF TODO: @Awkward you can end a string name and continue in parse mode before hitting ':'
+		'default' : StepPropertyStringName
 	},
 	Contexts.String : {
 		'active_string_delimeter': EndString,

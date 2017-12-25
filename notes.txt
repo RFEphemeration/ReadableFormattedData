@@ -1,0 +1,3 @@
+At least at first, don't allow type definitions by example. It dramatically complicates things and might not even be useful in the long run. Can continue iterating to allow it if you find type definitions too verbose.
+
+Examples define variables, not types.

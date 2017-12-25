@@ -8,6 +8,7 @@ class Contexts():
 	String = 'String'
 	ParseValue = 'ParseValue'
 	PropertyName = 'PropertyName'
+	PropertyStringName = 'PropertyStringName'
 	BaseName = 'BaseName'
 	BaseValue = 'BaseValue'
 	Macro = 'Macro'
