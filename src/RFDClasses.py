@@ -8,12 +8,18 @@ class Contexts():
 	String = 'String'
 	ParseValue = 'ParseValue'
 	PropertyName = 'PropertyName'
-	PropertyStringName = 'PropertyStringName'
-	BaseName = 'BaseName'
-	BaseValue = 'BaseValue'
+	NewDefinitionName = 'NewDefinitionName'
+
+	StringName = 'StringName' # for properties, definitions, and base values
+
 	Macro = 'Macro'
 
 	All = 'All'
+
+	BaseName = 'BaseName'
+	BaseValue = 'BaseValue'
+	
+	
 
 	MultilineString = 'MultilineString'
 	ParserSkip = 'ParserSkip'
@@ -40,13 +46,15 @@ class ObjectStackLocation():
 		self.context_type = context_type
 		self.object_location = object_location
 		self.children = {}
-		self.
 
 class Context():
 	def __init__(self, path, contents):
 		self.loaded_object = {}
+		self.loaded_definitions = {}
 		self.context_stack = [Contexts.Object]
+		self.shelved_location_stack = []
 		self.location_stack = []
+		self.type_stack = []
 		self.file_stack = []
 		self.file_stack_pop_char_number = []
 		self.value_buffer = ''
@@ -58,7 +66,7 @@ class Context():
 		self.last_context = Contexts.Unkown
 		self.active_string_delimeter = ''
 		self.string_escaped = False
-		self.potential_string_delimeters = ['"', '\'']
+		self.potential_string_delimeters = ['"', "'"]
 		file_path, file_name = SplitFilePath(path)
 		self.PushFilePath(file_path, len(contents))
 		self.in_definition = False
@@ -119,15 +127,22 @@ class Context():
 		pass
 
 	def GetChildAtLocation(self):
-		#LogVerbose ("Getting child at location: " + MakeObjectPath(location))
+		LogVerbose ("Getting child at location: " + MakeObjectPath(self.location_stack))
 		child = self.loaded_object
+		if (self.in_definition):
+			child = self.loaded_definitions
+
 		for step in self.location_stack:
 			child = child[step]
 		return child
 
 	def SetChildAtLocation(self, value):
-		#LogVerbose ("Setting child at location: " + MakeObjectPath(location) + " to value: " + str(value))
+		LogVerbose ("Setting child at location: " + MakeObjectPath(self.location_stack) + " to value: " + str(value))
+
 		child = self.loaded_object
+		if (self.in_definition):
+			child = self.loaded_definitions
+
 		if (len(self.location_stack) == 0):
 			child = value
 			return

@@ -34,13 +34,19 @@ def BeginValue(context):
 		new_location = len(current_array)
 		context.location_stack.append(new_location)
 		current_array.append(None)
+		if (not context.in_definition):
+			context.type_stack.append(None)
+		#rmf todo: @incomplete allowing types inside of array
 	context.PushContextType(Contexts.Value)
 
 def EndValue(context):
 	context.PrintFunctionEnter("EndValue")
-	# RMF TODO : check if we're in an array or object and pop location accordingly
 	context.PopContextType(Contexts.Value)
 	context.location_stack.pop()
+	if (len(context.location_stack) == 0 and context.in_definition):
+		context.location_stack = context.shelved_location_stack[:]
+		context.shelved_location_stack = []
+		context.in_definition = False
 
 def BeginObject(context):
 	context.PrintFunctionEnter("BeginObject")
@@ -70,6 +76,26 @@ def EndBaseName(context):
 	context.value_buffer = ''
 	context.location_stack.append(new_location)
 
+def BeginNewDefinitionName(context):
+	context.PrintFunctionEnter("BeginNewDefinitionName")
+	context.PushContextType(Contexts.NewDefinitionName)
+	context.value_buffer = ''
+	context.in_definition = True
+
+def StepNewDefinitionName(context):
+	context.value_buffer += context.next_char
+	pprint.pprint(context.value_buffer)
+
+def EndNewDefinitionName(context):
+	context.PrintFunctionEnter("EndNewDefinitionName")
+	context.PopContextType(Contexts.NewDefinitionName)
+	new_definition_name = context.value_buffer.strip()
+	context.value_buffer = ''
+	context.loaded_definitions[new_definition_name] = None
+	context.shelved_location_stack = context.location_stack[:]
+	context.location_stack = [new_definition_name]
+	context.in_definition = True
+
 def BeginPropertyName(context):
 	context.PrintFunctionEnter("BeginPropertyName")
 	context.PushContextType(Contexts.PropertyName)
@@ -85,19 +111,27 @@ def EndPropertyName(context):
 	context.value_buffer = ''
 	# rmf todo: where to put this?
 	context.location_stack.append(new_location)
+	if (not context.in_definition):
+		context.type_stack.append(None)
 
-def BeginPropertyStringName(context):
-	context.PrintFunctionEnter("BeginPropertyStringName")
-	context.PushContextType(Contexts.PropertyStringName)
+def BeginStringName(context):
+	context.PrintFunctionEnter("BeginStringName")
+	context.PushContextType(Contexts.StringName)
 	context.value_buffer = ''
 	context.active_string_delimeter = context.next_char
 
-def StepPropertyStringName(context):
+def PotentialBeginStringName(context, fallback):
+	if (context.value_buffer == ''):
+		BeginStringName(context)
+	else:
+		fallback(context)
+
+def StepStringName(context):
 	context.value_buffer += context.next_char
 
-def EndPropertyStringName(context):
-	context.PrintFunctionEnter("EndPropertyStringName")
-	context.PopContextType(Contexts.PropertyStringName)
+def EndStringName(context):
+	context.PrintFunctionEnter("EndStringName")
+	context.PopContextType(Contexts.StringName)
 
 def BeginParseValue(context):
 	context.PrintFunctionEnter("BeginParseValue")
@@ -159,7 +193,8 @@ StepDelta = {
 		'\n': DoNothing,
 		'}' : EndObject,
 		'#' : BeginMacro,
-		'potential_string_delimeter' : lambda context: (BeginPropertyName(context), BeginPropertyStringName(context)),
+		'@' : BeginNewDefinitionName,
+		'potential_string_delimeter' : lambda context: (BeginPropertyName(context), BeginStringName(context)),
 		'default' : BeginPropertyName
 	},
 	Contexts.Array : {
@@ -172,14 +207,20 @@ StepDelta = {
 		'potential_string_delimeter' : lambda context: (BeginValue(context), BeginString(context)),
 		'default' : lambda context: (BeginValue(context), BeginParseValue(context))
 	},
+	Contexts.NewDefinitionName : {
+		':' : lambda context: (EndNewDefinitionName(context), BeginValue(context)),
+		'potential_string_delimeter' : lambda context: (PotentialBeginStringName(context, StepNewDefinitionName)),
+		'default': StepNewDefinitionName
+	},
 	Contexts.PropertyName : {
 		':' : lambda context: (EndPropertyName(context), BeginValue(context)),
+		'potential_string_delimeter' : lambda context: (PotentialBeginStringName(context, StepPropertyName)),
 		'default' : StepPropertyName
 	},
-	Contexts.PropertyStringName : {
-		'active_string_delimeter': EndPropertyStringName,
+	Contexts.StringName : {
+		'active_string_delimeter': EndStringName,
 		# RMF TODO: @Awkward you can end a string name and continue in parse mode before hitting ':'
-		'default' : StepPropertyStringName
+		'default' : StepStringName
 	},
 	Contexts.String : {
 		'active_string_delimeter': EndString,
@@ -246,7 +287,7 @@ def ParseRFDString(path, contents):
 		LogError("Location Stack isn't empty")
 	if (len(context.context_stack) != 1):
 		LogError("Context Stack hasn't returned to just object")
-	return context.loaded_object
+	return context.loaded_definitions
 
 def ParseRFDFile(location):
 	f = open (location, 'r')

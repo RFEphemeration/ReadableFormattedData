@@ -1,0 +1,30 @@
+@ignore_this : {
+	allofit: is broken
+	because: you can't use it
+	one_of : [ {yes: no, maybe: so}, {okay: tryit, ifyou: can} ]
+}
+
+@"stringdefinitionname" : "works, eh?"
+
+id : 5
+name : j
+birthday : {
+	year : 1992
+	celebrations : {
+		pie : true
+	}
+}
+test: {yas : please, no : thank you}
+highscores : [
+	100
+	72
+	9
+	{
+		what : test this
+		help : [
+			okay, what, now, [4]
+		]
+	}, {yas : please, no : thank you}
+]
+
+@alsoignore : 5
