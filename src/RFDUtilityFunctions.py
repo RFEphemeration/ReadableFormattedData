@@ -6,7 +6,7 @@ def LogError(error):
 	print(error)
 
 def LogVerbose(output):
-	pprint.pprint(output)
+	#pprint.pprint(output)
 	pass
 
 def MakeObjectPath(array):

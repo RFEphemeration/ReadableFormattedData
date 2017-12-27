@@ -6,7 +6,7 @@
 
 @"stringdefinitionname" : "works, eh?"
 
-id : 5
+id : @Int 5
 name : j
 birthday : {
 	year : 1992
@@ -26,5 +26,6 @@ highscores : [
 		]
 	}, {yas : please, no : thank you}
 ]
+
 
 @alsoignore : 5

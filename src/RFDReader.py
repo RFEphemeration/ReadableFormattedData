@@ -2,6 +2,7 @@ import pprint
 from RFDClasses import Contexts, Context
 from RFDUtilityFunctions import LogError, LogVerbose, ParseValue
 from RFDMacros import ExecuteMacro
+from RFDTypeDefinition import Validate, BuiltinValueTypes
 
 def BeginMacro(context):
 	context.PushContextType(Contexts.Macro)
@@ -35,18 +36,40 @@ def BeginValue(context):
 		context.location_stack.append(new_location)
 		current_array.append(None)
 		if (not context.in_definition):
-			context.type_stack.append(None)
+			context.type_stack.append(BuiltinValueTypes.Any)
 		#rmf todo: @incomplete allowing types inside of array
 	context.PushContextType(Contexts.Value)
 
 def EndValue(context):
 	context.PrintFunctionEnter("EndValue")
 	context.PopContextType(Contexts.Value)
+	if (not context.in_definition
+		and context.type_stack[-1] != BuiltinValueTypes.Any
+		and len(context.type_stack) > 0):
+		Validate(context, context.GetChildAtLocation(), context.type_stack[-1])
+
 	context.location_stack.pop()
 	if (len(context.location_stack) == 0 and context.in_definition):
 		context.location_stack = context.shelved_location_stack[:]
 		context.shelved_location_stack = []
 		context.in_definition = False
+
+def BeginValueType(context):
+	context.PrintFunctionEnter("BeginValueType")
+	context.PushContextType(Contexts.ValueType)
+	context.value_buffer = ''
+
+def StepValueType(context):
+	context.value_buffer += context.next_char
+
+def EndValueType(context):
+	context.PrintFunctionEnter("EndValueType")
+	context.PopContextType(Contexts.ValueType)
+	new_type = context.value_buffer.strip()
+	#rmf todo: @incorrect, if a string name is used, it will still strip it
+	# post string name seems to be a useful state
+	context.value_buffer = ''
+	context.type_stack[-1] = new_type
 
 def BeginObject(context):
 	context.PrintFunctionEnter("BeginObject")
@@ -84,7 +107,6 @@ def BeginNewDefinitionName(context):
 
 def StepNewDefinitionName(context):
 	context.value_buffer += context.next_char
-	pprint.pprint(context.value_buffer)
 
 def EndNewDefinitionName(context):
 	context.PrintFunctionEnter("EndNewDefinitionName")
@@ -112,7 +134,7 @@ def EndPropertyName(context):
 	# rmf todo: where to put this?
 	context.location_stack.append(new_location)
 	if (not context.in_definition):
-		context.type_stack.append(None)
+		context.type_stack.append(BuiltinValueTypes.Any)
 
 def BeginStringName(context):
 	context.PrintFunctionEnter("BeginStringName")
@@ -120,11 +142,13 @@ def BeginStringName(context):
 	context.value_buffer = ''
 	context.active_string_delimeter = context.next_char
 
-def PotentialBeginStringName(context, fallback):
-	if (context.value_buffer == ''):
-		BeginStringName(context)
-	else:
-		fallback(context)
+def PotentialBeginStringName(fallback):
+	def InnerPotentialBeginStringName(context):
+		if (context.value_buffer == ''):
+			return BeginStringName(context)
+		else:
+			return fallback(context)
+	return InnerPotentialBeginStringName
 
 def StepStringName(context):
 	context.value_buffer += context.next_char
@@ -194,7 +218,7 @@ StepDelta = {
 		'}' : EndObject,
 		'#' : BeginMacro,
 		'@' : BeginNewDefinitionName,
-		'potential_string_delimeter' : lambda context: (BeginPropertyName(context), BeginStringName(context)),
+		'potential_string_delimeter' : [BeginPropertyName, BeginStringName],
 		'default' : BeginPropertyName
 	},
 	Contexts.Array : {
@@ -202,19 +226,19 @@ StepDelta = {
 		'\t': DoNothing,
 		'\n': DoNothing,
 		']' : EndArray,
-		'{' : lambda context: (BeginValue(context), BeginObject(context)),
-		'[' : lambda context: (BeginValue(context), BeginArray(context)),
-		'potential_string_delimeter' : lambda context: (BeginValue(context), BeginString(context)),
-		'default' : lambda context: (BeginValue(context), BeginParseValue(context))
+		'{' : [BeginValue, BeginObject],
+		'[' : [BeginValue, BeginArray],
+		'potential_string_delimeter' : [BeginValue, BeginString],
+		'default' : [BeginValue, BeginParseValue]
 	},
 	Contexts.NewDefinitionName : {
-		':' : lambda context: (EndNewDefinitionName(context), BeginValue(context)),
-		'potential_string_delimeter' : lambda context: (PotentialBeginStringName(context, StepNewDefinitionName)),
+		':' : [EndNewDefinitionName, BeginValue],
+		'potential_string_delimeter' : PotentialBeginStringName(StepNewDefinitionName),
 		'default': StepNewDefinitionName
 	},
 	Contexts.PropertyName : {
-		':' : lambda context: (EndPropertyName(context), BeginValue(context)),
-		'potential_string_delimeter' : lambda context: (PotentialBeginStringName(context, StepPropertyName)),
+		':' : [EndPropertyName, BeginValue],
+		'potential_string_delimeter' : PotentialBeginStringName(StepPropertyName),
 		'default' : StepPropertyName
 	},
 	Contexts.StringName : {
@@ -229,25 +253,42 @@ StepDelta = {
 	Contexts.Value : {
 		' ' : DoNothing,
 		'\t': DoNothing,
+		'@' : BeginValueType,
 		'{' : BeginObject,
 		'[' : BeginArray,
 		'\n' : EndValue,
 		',' : EndValue,
 		'eof': EndValue,
-		'}' : lambda context: (EndValue(context), EndObject(context)),
-		']' : lambda context: (EndValue(context), EndArray(context)),
+		'}' : [EndValue, EndObject],
+		']' : [EndValue, EndArray],
 		'potential_string_delimeter': BeginString,
 		'default': BeginParseValue
 	},
+	Contexts.ValueType : {
+		'potential_string_delimeter' : PotentialBeginStringName(StepValueType),
+		' ' : EndValueType,
+		'\t' : EndValueType,
+		'\n' : [EndValueType, EndValue],
+		',' : [EndValueType, EndValue],
+		'eof': [EndValueType, EndValue],
+		'default': StepValueType
+	},
 	Contexts.ParseValue : {
-		'\n' : lambda context: (EndParseValue(context), EndValue(context)),
-		',' : lambda context: (EndParseValue(context), EndValue(context)),
-		'eof': lambda context: (EndParseValue(context), EndValue(context)),
-		'}' : lambda context: (EndParseValue(context), EndValue(context), EndObject(context)),
-		']' : lambda context: (EndParseValue(context), EndValue(context), EndArray(context)),
+		'\n' : [EndParseValue, EndValue],
+		',' : [EndParseValue, EndValue],
+		'eof': [EndParseValue, EndValue],
+		'}' : [EndParseValue, EndValue, EndObject],
+		']' : [EndParseValue, EndValue, EndArray],
 		'default': StepParseValue
 	}
 }
+
+def CallStepDelta(context, context_type, step_key):
+		if (isinstance(StepDelta[context_type][step_key], (list, tuple))):
+			for step_function in StepDelta[context_type][step_key]:
+				step_function(context)
+		else:
+			StepDelta[context_type][step_key](context)
 
 def StepContext(context):
 	next_char = context.ReadNextChar()
@@ -258,16 +299,17 @@ def StepContext(context):
 		context.last_context = context_type
 	#LogVerbose("Context: " + context_type + " Char : " + next_char + " Value Buffer: " + context.value_buffer)
 	if (next_char in StepDelta[Contexts.All]):
-		StepDelta[Contexts.All][next_char](context)
+		CallStepDelta(context, Contexts.All, next_char)
 	elif (context_type in StepDelta):
 		if (next_char in StepDelta[context_type]):
-			StepDelta[context_type][next_char](context)
+			CallStepDelta(context, context_type, next_char)
 		elif ('active_string_delimeter' in StepDelta[context_type] and next_char == context.active_string_delimeter):
-			StepDelta[context_type]['active_string_delimeter'](context)
+			CallStepDelta(context, context_type, 'active_string_delimeter')
 		elif ('potential_string_delimeter' in StepDelta[context_type] and next_char in context.potential_string_delimeters):
-			StepDelta[context_type]['potential_string_delimeter'](context)
+			CallStepDelta(context, context_type, 'potential_string_delimeter')
 		elif ('default' in StepDelta[context_type]):
-			StepDelta[context_type]['default'](context)
+			CallStepDelta(context, context_type, 'default')
+
 
 def StepContextEOF(context):
 	context_type = context.context_stack[-1]
@@ -276,7 +318,7 @@ def StepContextEOF(context):
 		context.last_context = context_type
 	if (context_type in StepDelta):
 		if ('eof' in StepDelta[context_type]):
-			StepDelta[context_type]['eof'](context)
+			CallStepDelta(context, context_type, 'eof')
 
 def ParseRFDString(path, contents):
 	context = Context(path, contents)
@@ -287,7 +329,7 @@ def ParseRFDString(path, contents):
 		LogError("Location Stack isn't empty")
 	if (len(context.context_stack) != 1):
 		LogError("Context Stack hasn't returned to just object")
-	return context.loaded_definitions
+	return context.loaded_object, context.loaded_definitions
 
 def ParseRFDFile(location):
 	f = open (location, 'r')

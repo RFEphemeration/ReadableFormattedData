@@ -9,6 +9,7 @@ class Contexts():
 	ParseValue = 'ParseValue'
 	PropertyName = 'PropertyName'
 	NewDefinitionName = 'NewDefinitionName'
+	ValueType = 'ValueType'
 
 	StringName = 'StringName' # for properties, definitions, and base values
 
