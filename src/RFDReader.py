@@ -4,6 +4,12 @@ from RFDUtilityFunctions import LogError, LogVerbose, ParseValue
 from RFDMacros import ExecuteMacro
 from RFDTypeDefinition import Validate, BuiltinValueTypes
 
+def AddCharToBuffer(context):
+	context.value_buffer += context.next_char
+
+def DoNothing(context):
+	pass
+
 def BeginMacro(context):
 	context.PushContextType(Contexts.Macro)
 	context.value_buffer = ''
@@ -20,9 +26,6 @@ def EndMacro(context):
 		# RMF TODO: @Incomplete this should probably be a parse value?
 		# do we want to enable this relatively ambiguous syntax?
 		pass
-
-def StepMacro(context):
-	context.value_buffer += context.next_char
 
 def BeginValue(context):
 	context.PrintFunctionEnter("BeginValue")
@@ -59,9 +62,6 @@ def BeginValueType(context):
 	context.PushContextType(Contexts.ValueType)
 	context.value_buffer = ''
 
-def StepValueType(context):
-	context.value_buffer += context.next_char
-
 def EndValueType(context):
 	context.PrintFunctionEnter("EndValueType")
 	context.PopContextType(Contexts.ValueType)
@@ -77,9 +77,6 @@ def BeginObject(context):
 	context.SetChildAtLocation(new_object)
 	context.PushContextType(Contexts.Object)
 
-def DoNothing(context):
-	pass
-
 def EndObject(context):
 	context.PrintFunctionEnter("EndObject")
 	context.PopContextType(Contexts.Object)
@@ -88,9 +85,6 @@ def BeginBaseName(context):
 	context.PrintFunctionEnter("BeginBaseName")
 	context.PushContextType(Contexts.BaseName)
 	context.value_buffer = ''
-
-def StepBaseName(context):
-	context.value_buffer += context.next_char
 
 def EndBaseName(context):
 	context.PrintFunctionEnter("EndBaseName")
@@ -123,9 +117,6 @@ def BeginPropertyName(context):
 	context.PushContextType(Contexts.PropertyName)
 	context.value_buffer = context.next_char
 
-def StepPropertyName(context):
-	context.value_buffer += context.next_char
-
 def EndPropertyName(context):
 	context.PrintFunctionEnter("EndPropertyName")
 	context.PopContextType(Contexts.PropertyName)
@@ -150,9 +141,6 @@ def PotentialBeginStringName(fallback):
 			return fallback(context)
 	return InnerPotentialBeginStringName
 
-def StepStringName(context):
-	context.value_buffer += context.next_char
-
 def EndStringName(context):
 	context.PrintFunctionEnter("EndStringName")
 	context.PopContextType(Contexts.StringName)
@@ -161,9 +149,6 @@ def BeginParseValue(context):
 	context.PrintFunctionEnter("BeginParseValue")
 	context.PushContextType(Contexts.ParseValue)
 	context.value_buffer = context.next_char
-
-def StepParseValue(context):
-	context.value_buffer += context.next_char
 
 def EndParseValue(context):
 	context.PrintFunctionEnter("EndParseValue")
@@ -209,7 +194,7 @@ StepDelta = {
 	Contexts.Macro: {
 		'\n': EndMacro,
 		'eof': EndMacro,
-		'default': StepMacro
+		'default': AddCharToBuffer
 	},
 	Contexts.Object : {
 		' ' : DoNothing,
@@ -233,18 +218,18 @@ StepDelta = {
 	},
 	Contexts.NewDefinitionName : {
 		':' : [EndNewDefinitionName, BeginValue],
-		'potential_string_delimeter' : PotentialBeginStringName(StepNewDefinitionName),
-		'default': StepNewDefinitionName
+		'potential_string_delimeter' : PotentialBeginStringName(AddCharToBuffer),
+		'default': AddCharToBuffer
 	},
 	Contexts.PropertyName : {
 		':' : [EndPropertyName, BeginValue],
-		'potential_string_delimeter' : PotentialBeginStringName(StepPropertyName),
-		'default' : StepPropertyName
+		'potential_string_delimeter' : PotentialBeginStringName(AddCharToBuffer),
+		'default' : AddCharToBuffer
 	},
 	Contexts.StringName : {
 		'active_string_delimeter': EndStringName,
 		# RMF TODO: @Awkward you can end a string name and continue in parse mode before hitting ':'
-		'default' : StepStringName
+		'default' : AddCharToBuffer
 	},
 	Contexts.String : {
 		'active_string_delimeter': EndString,
@@ -265,13 +250,13 @@ StepDelta = {
 		'default': BeginParseValue
 	},
 	Contexts.ValueType : {
-		'potential_string_delimeter' : PotentialBeginStringName(StepValueType),
+		'potential_string_delimeter' : PotentialBeginStringName(AddCharToBuffer),
 		' ' : EndValueType,
 		'\t' : EndValueType,
 		'\n' : [EndValueType, EndValue],
 		',' : [EndValueType, EndValue],
 		'eof': [EndValueType, EndValue],
-		'default': StepValueType
+		'default': AddCharToBuffer
 	},
 	Contexts.ParseValue : {
 		'\n' : [EndParseValue, EndValue],
@@ -279,7 +264,7 @@ StepDelta = {
 		'eof': [EndParseValue, EndValue],
 		'}' : [EndParseValue, EndValue, EndObject],
 		']' : [EndParseValue, EndValue, EndArray],
-		'default': StepParseValue
+		'default': AddCharToBuffer
 	}
 }
 
