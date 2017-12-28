@@ -2,7 +2,7 @@ import pprint
 from RFDClasses import Contexts, Context
 from RFDUtilityFunctions import LogError, LogVerbose, ParseValue
 from RFDMacros import ExecuteMacro
-from RFDTypeDefinition import Validate, BuiltinValueTypes
+from RFDTypeDefinition import Validate, BuiltinValueTypes, BasicTypes, AllowedDefinitionMembers, ParseTypedBasicValue, GetRootBasicType
 
 def AddCharToBuffer(context):
 	context.value_buffer += context.next_char
@@ -39,7 +39,7 @@ def BeginValue(context):
 		context.location_stack.append(new_location)
 		current_array.append(None)
 		if (not context.in_definition):
-			context.type_stack.append(BuiltinValueTypes.Any)
+			context.type_stack.append(BuiltinValueTypes.Unspecified)
 		#rmf todo: @incomplete allowing types inside of array
 	context.PushContextType(Contexts.Value)
 
@@ -47,9 +47,10 @@ def EndValue(context):
 	context.PrintFunctionEnter("EndValue")
 	context.PopContextType(Contexts.Value)
 	if (not context.in_definition
-		and context.type_stack[-1] != BuiltinValueTypes.Any
 		and len(context.type_stack) > 0):
-		Validate(context, context.GetChildAtLocation(), context.type_stack[-1])
+		if (context.type_stack[-1] != BuiltinValueTypes.Unspecified):
+			Validate(context, context.GetChildAtLocation(), context.type_stack[-1])
+		context.type_stack.pop()
 
 	context.location_stack.pop()
 	if (len(context.location_stack) == 0 and context.in_definition):
@@ -124,8 +125,11 @@ def EndPropertyName(context):
 	context.value_buffer = ''
 	# rmf todo: where to put this?
 	context.location_stack.append(new_location)
-	if (not context.in_definition):
-		context.type_stack.append(BuiltinValueTypes.Any)
+	if (context.in_definition):
+		if (new_location not in AllowedDefinitionMembers):
+			LogError("Member named " + new_location + " in definition of " + context.location_stack[0] + " is not allowed.")
+	else:
+		context.type_stack.append(BuiltinValueTypes.Unspecified)
 
 def BeginStringName(context):
 	context.PrintFunctionEnter("BeginStringName")
@@ -153,7 +157,14 @@ def BeginParseValue(context):
 def EndParseValue(context):
 	context.PrintFunctionEnter("EndParseValue")
 	context.PopContextType(Contexts.ParseValue)
-	parsed_value = ParseValue(context.value_buffer)
+	basic_type = None
+	if (len(context.type_stack) > 0):
+		basic_type = GetRootBasicType(context, context.type_stack[-1]);
+	if (not context.in_definition
+		and basic_type != None):
+		parsed_value = ParseTypedBasicValue(context.value_buffer, basic_type)
+	else:
+		parsed_value = ParseValue(context.value_buffer)
 	context.SetChildAtLocation(parsed_value)
 	context.value_buffer = ''
 

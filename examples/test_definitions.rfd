@@ -6,12 +6,18 @@
 
 @"stringdefinitionname" : "works, eh?"
 
-id : @Int 5
-name : j
+@Float01 : {
+	type: Float,
+	min: 0,
+	max: 1
+}
+
+id : @Float01 1
+name : @String j
 birthday : {
-	year : 1992
+	year : @String 1992
 	celebrations : {
-		pie : true
+		pie : @Bool true
 	}
 }
 test: {yas : please, no : thank you}

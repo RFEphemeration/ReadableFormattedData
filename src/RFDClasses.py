@@ -20,7 +20,6 @@ class Contexts():
 	BaseName = 'BaseName'
 	BaseValue = 'BaseValue'
 	
-	
 
 	MultilineString = 'MultilineString'
 	ParserSkip = 'ParserSkip'

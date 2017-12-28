@@ -102,6 +102,24 @@ $Person
 	require_override: true	
 }
 
+@Palette: @{
+	members: [
+		@{	name: colors,
+			types: array,
+			element_types: @Color
+			max_len: 16
+		},
+		@{	name: active_color,
+			type: int,
+			min: 0,
+			max: @{
+				type: reference
+				reference_path: colors
+				reference_property: length
+			}
+		}
+	]
+}
 
 
 @Person[meets_requirements_of_any(@Employee, @Civilian)]:

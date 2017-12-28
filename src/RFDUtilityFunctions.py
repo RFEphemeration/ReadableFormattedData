@@ -1,13 +1,31 @@
 import pprint
 
-ProtectedSymbols = ['{', '}', '[', ']', ',', '\n', ':', '.', '@']
+ProtectedSymbols = {'{', '}', '[', ']', ',', '\n', ':', '.', '@'}
+
+class Settings:
+	LogError = True
+	LogVerbose = False
+	LogValidation = True
 
 def LogError(error):
+	if (not Settings.LogError):
+		return
 	print(error)
 
 def LogVerbose(output):
-	#pprint.pprint(output)
-	pass
+	if (not Settings.LogVerbose):
+		return
+	pprint.pprint(output)
+
+def LogValidationCheck(data, type_name, success):
+	LogValidation("Validating data value: " + pprint.pformat(data)		
+		+ " against type: " + type_name
+		+ " > " + str(success))
+
+def LogValidation(output):
+	if (not Settings.LogValidation):
+		return
+	print(output)
 
 def MakeObjectPath(array):
 	path = ""
@@ -46,9 +64,9 @@ def GetFloat(v):
 
 def GetBoolean(v):
 	v = v.strip().lower()
-	if (v == "true"):
+	if (v == 'true' or v == 't'):
 		return True
-	if (v == "false"):
+	if (v == 'false' or v == 'f'):
 		return False
 	return None
 
