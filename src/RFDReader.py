@@ -2,7 +2,7 @@ import pprint
 from RFDClasses import Contexts, Context
 from RFDUtilityFunctions import LogError, LogVerbose, ParseValue
 from RFDMacros import ExecuteMacro
-from RFDTypeDefinition import Validate, BuiltinValueTypes, BasicTypes, AllowedDefinitionMembers, ParseTypedBasicValue, GetRootBasicType
+from RFDTypeDefinition import Validate, RootTypes, BasicTypes, AllowedDefinitionMembers, ParseTypedBasicValue, GetRootBasicType
 
 def AddCharToBuffer(context):
 	context.value_buffer += context.next_char
@@ -39,7 +39,7 @@ def BeginValue(context):
 		context.location_stack.append(new_location)
 		current_array.append(None)
 		if (not context.in_definition):
-			context.type_stack.append(BuiltinValueTypes.Unspecified)
+			context.type_stack.append(RootTypes.Unspecified)
 		#rmf todo: @incomplete allowing types inside of array
 	context.PushContextType(Contexts.Value)
 
@@ -48,7 +48,7 @@ def EndValue(context):
 	context.PopContextType(Contexts.Value)
 	if (not context.in_definition
 		and len(context.type_stack) > 0):
-		if (context.type_stack[-1] != BuiltinValueTypes.Unspecified):
+		if (context.type_stack[-1] != RootTypes.Unspecified):
 			Validate(context, context.GetChildAtLocation(), context.type_stack[-1])
 		context.type_stack.pop()
 
@@ -129,7 +129,7 @@ def EndPropertyName(context):
 		if (new_location not in AllowedDefinitionMembers):
 			LogError("Member named " + new_location + " in definition of " + context.location_stack[0] + " is not allowed.")
 	else:
-		context.type_stack.append(BuiltinValueTypes.Unspecified)
+		context.type_stack.append(RootTypes.Unspecified)
 
 def BeginStringName(context):
 	context.PrintFunctionEnter("BeginStringName")
@@ -159,7 +159,7 @@ def EndParseValue(context):
 	context.PopContextType(Contexts.ParseValue)
 	basic_type = None
 	if (len(context.type_stack) > 0):
-		basic_type = GetRootBasicType(context, context.type_stack[-1]);
+		basic_type = GetRootType(context, context.type_stack[-1]);
 	if (not context.in_definition
 		and basic_type != None):
 		parsed_value = ParseTypedBasicValue(context.value_buffer, basic_type)

@@ -9,7 +9,6 @@
 
 @range-int(x, y):
 
-
 .Person : {
 	type: object
 }

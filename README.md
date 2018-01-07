@@ -99,6 +99,7 @@
 
 ## Major TODOs
 * Data format schema
+* Enumerations
 * Serialization of objects to text
 * Serializer/Deserializer in C++
 * Good error messages

@@ -4,7 +4,7 @@ import pdb
 
 from RFDUtilityFunctions import LogValidationCheck, LogError, GetInteger, GetBoolean, GetFloat, GetString, ParseValue
 
-class BuiltinValueTypes():
+class RootTypes():
 	Unspecified = 'Unspecified'
 	Bool = 'Bool'
 	Int = 'Int'
@@ -22,6 +22,8 @@ AllowedDefinitionMembers = {
 	'extends', # rmf todo: this is important, but requires partial validation
 	'default_value',
 
+	'length',
+
 	'one_of', # rmf todo: @incomplete will need more work to make this able to be nested
 
 	'members',
@@ -30,28 +32,28 @@ AllowedDefinitionMembers = {
 	'delete_members' # from parent
 }
 
-BuiltinTypeNameToPythonType = {
-	BuiltinValueTypes.Bool : (bool),
-	BuiltinValueTypes.Int : (int),
-	BuiltinValueTypes.Float : (float),
-	BuiltinValueTypes.String : (basestring),
-	BuiltinValueTypes.Array : (list),
-	BuiltinValueTypes.Object : (dict),
-	BuiltinValueTypes.Any : ()
+RootTypeNameToPythonType = {
+	RootTypes.Bool : (bool),
+	RootTypes.Int : (int),
+	RootTypes.Float : (float),
+	RootTypes.String : (basestring),
+	RootTypes.Array : (list),
+	RootTypes.Object : (dict),
+	RootTypes.Any : ()
 }
 
 BasicTypes = {
-	BuiltinValueTypes.Bool,
-	BuiltinValueTypes.Int,
-	BuiltinValueTypes.Float,
-	BuiltinValueTypes.String
+	RootTypes.Bool,
+	RootTypes.Int,
+	RootTypes.Float,
+	RootTypes.String
 }
 
 BasicTypeParsers = {
-	BuiltinValueTypes.Bool : GetBoolean,
-	BuiltinValueTypes.Int : GetInteger,
-	BuiltinValueTypes.Float : GetFloat,
-	BuiltinValueTypes.String : GetString
+	RootTypes.Bool : GetBoolean,
+	RootTypes.Int : GetInteger,
+	RootTypes.Float : GetFloat,
+	RootTypes.String : GetString
 }
 
 class DefinitionNode():
@@ -65,41 +67,64 @@ class DataNode():
 		self.value = value
 		self.definition = definition
 
-def Validate(context, data, type_name):
-	success = False
-	if (type_name in BuiltinTypeNameToPythonType):
-		success = ValidateBuiltinTypeMatch(data, type_name)
-		LogValidationCheck(data, type_name, success)
-		return success
+def ValitateTypeMatch(context, data, type_name_or_definition):
 
-	elif (type_name in context.loaded_definitions):
-		if (not isinstance(context.loaded_definitions[type_name], dict)):
-			LogError("Tried to validate against type that is data value")
+	validation_type = GetBasicType(type_name_or_definition)
+	if (validation_type == RootTypes.String):
+		type_name = type_name_or_definition
+
+		if (type_name in RootTypeNameToPythonType):
+			success = ValidateBuiltinTypeMatch(data, type_name)
 			LogValidationCheck(data, type_name, success)
 			return success
-		definition = context.loaded_definitions[type_name]
-		basic_type_name = GetRootBasicType(context, type_name)
-		if (basic_type_name != None):
-			success = ValidateDefinitionOfBasicType(context, data, definition)
+
+		else if (type_name in context.loaded_definitions):
+			#rmf todo: @incomplete it's not just about whether it's a dict, but whether it is a definition, values should probably happen in a different loaded_ place
+			if (not isinstance(context.loaded_definitions[type_name], dict)):
+				LogError("Tried to validate against type that is data value")
+				LogValidationCheck(data, type_name, success)
+				return False
+
+			definition = context.loaded_definitions[type_name]
+			root_type = GetRootType(context, type_name)
+
 		else:
-			# rmf todo: @incomplete validate objects and arrays
-			pass
+			LogValidationCheck(data, type_name, success)
+			return False
+
+	else if (validation_type == RootTypes.Object):
+		definition = type_name_or_definition
+		root_type = GetRootType(data, definition)
+	
+	#rmf todo: this doesn't support extending either array or string, I think.
+	if (root_type in BasicTypes):
+		success = ValidateDefinitionOfBasicType(context, data, definition)
+	else if (root_type == RootTypes.Array):
+		success = ValidateDefinitionOfArrayType(context, data, definition)
+	else:
+		# rmf todo: @incomplete validate objects
+		pass
 
 	LogValidationCheck(data, type_name, success)
-	return success
-	#type_data = context.loaded_definitions[]
+	return False
+
+def Validate(context, data, type_name_or_definition):
+	ValitateTypeMatch(context, data, type_name_or_definition)
 	
 def ValidateBuiltinTypeMatch(data, type_name):
-	if (type_name == BuiltinValueTypes.Any):
+	if (type_name == RootTypes.Any):
 		return True
 	else:
-		return isinstance(data, BuiltinTypeNameToPythonType[type_name])
+		return isinstance(data, RootTypeNameToPythonType[type_name])
 
-def IsBasicType(data):
+def GetBasicType(data):
 	for type_name in BasicTypes:
 		if (ValidateBuiltinTypeMatch(data, type_name)):
-			return True
-	return False
+			return type_name
+	return None
+
+def IsBasicType(data):
+	return (GetBasicType(data) != None)
 
 def ParseTypedBasicValue(string_buffer, type_name):
 	parsed_value = BasicTypeParsers[type_name](string_buffer)
@@ -109,8 +134,21 @@ def ParseTypedBasicValue(string_buffer, type_name):
 
 	return parsed_value
 
-def GetRootBasicType(context, type_name):
-	# rmf todo @Wrong this shouldn't use definition['type'], it should be based on explicit extension
+def GetRootType(context, type_name_or_defintion):
+	# rmf todo: @Incomplete this shouldn't use definition['type'], it should be based on explicit extension
+	validation_type = GetBasicType(type_name_or_definition)
+	if (validation_type == RootTypes.String):
+		type_name = type_name_or_definition
+
+	else if (validation_type == RootTypes.Object):
+		type_definition = type_name_or_definition
+		if ('type' in type_defintion):
+			return type_definition['type']
+		else if ('extends' in type_defition):
+			type_name = type_defintion['extends']
+		else:
+			return RootTypes.Unspecified
+
 	checked_types = set()
 	while (type_name != None):
 		if (type_name in BasicTypes):
@@ -121,23 +159,42 @@ def GetRootBasicType(context, type_name):
 		if (type_name not in context.loaded_definitions):
 			return None
 		type_defintion = context.loaded_definitions[type_name]
-		if ('type' not in type_defintion):
-			return None
-		type_name = type_defintion['type']
+		if ('type' in type_defintion):
+			return type_definition['type']
+		if ('extends' in type_defintion)
+			type_name = type_defintion['extends']
+		return RootTypes.Unspecified
 		
 
-def ValidateDefinitionOfBasicType(context, data, definition):
+def ValidateDefinitionOfBasicType(context, data, type_name_or_definition):
+	if isinstance(definition, dict):
+		definition = type_name_or_definition
+	else:
+		if type_name_or_definition in RootTypeNameToPythonType:
+			return ValidateBuiltinTypeMatch(data, type_name_or_definition)
+		if type_name_or_definition not in context.loaded_definitions:
+			LogError("Unknown type name " + str(type_name_or_definition))
+			return False
+		definition = context.loaded_definitions[type_name_or_definition]
+
+	if 'extends' in definition:
+		#rmf todo: @incomplete allow extending multiple types
+		if not definition['extends'] in context.loaded_definitions:
+			return False
+		if not ValidateTypeMatch(context, data, definition['extends']):
+			return False
+
 	if 'type' in definition:
-		if (definition['type'] in BuiltinTypeNameToPythonType):
+		if definition['type'] in RootTypeNameToPythonType:
 			if not ValidateBuiltinTypeMatch(data, definition['type']):
 				return False
 		else:
 			return False
 	if 'min' in definition:
-		if (data < definition['min']):
+		if data < definition['min']:
 			return False
 	if 'max' in definition:
-		if (data > definition['max']):
+		if data > definition['max']:
 			return False
 	if 'regex' in definition:
 		if not re.match(definition['regex']):
@@ -153,3 +210,22 @@ def ValidateDefinitionOfBasicType(context, data, definition):
 			return False
 
 	return True
+
+def ValidateDefinitionOfArrayType(context, data, definition):
+	if 'length' in definition:
+		length_value = definition['length']
+		length_type = GetBasicType(length_value)
+		if (length_type == RootTypes.Int):
+			if (len(data) != length_value):
+				return False
+		else if (length_type == RootTypes.Object):
+			if not ValidateDefinitionOfBasicType(context, len(data), definition['length']):
+				return False
+	if 'elements' in definition:
+		elements_value = definition['elements']
+		elements_type = GetBasicType(elements_value)
+		if (elements_type == RootTypes.String):
+			for element in data:
+				if not Validate(context, element, elements_type):
+					return False
+		else if (elements_type == RootTypes.Object):
