@@ -1,3 +1,17 @@
 At least at first, don't allow type definitions by example. It dramatically complicates things and might not even be useful in the long run. Can continue iterating to allow it if you find type definitions too verbose.
 
 Examples define variables, not types.
+
+Allow reference to variables, and copying.
+
+Definitions with accessors that perform simple arithmatic/operations. This is like properties in C#. Allows you to share an array and then have another that is some simple function on the entries in the other array. Either allow this to be copied and cached at load or computed each time you access it. The interface from the end perspective should be the same.
+
+So the sparsely populated array defined by a series of pairs should have [] accessors and should either do caching or lookup depending on settings.
+
+what should the function definition syntax be? and how to specify cache/copy vs accessor computation? [] attributes feel interesting. could also use # in the middle of a line
+
+
+should take a look at extending something like hjson, parse it in as a dict, add extra syntax that is in a pre- or post-processor, or both. Type annotations probably get extracted in post-processor, but new syntax like @include or whatever would be pre-processed.
+
+Mark https://github.com/henry-luo/mark is worth looking at as well
+

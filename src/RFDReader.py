@@ -239,7 +239,7 @@ StepDelta = {
 	},
 	Contexts.StringName : {
 		'active_string_delimeter': EndStringName,
-		# RMF TODO: @Awkward you can end a string name and continue in parse mode before hitting ':'
+		# rmf todo: @Awkward you can end a string name and continue in parse mode before hitting ':'
 		'default' : AddCharToBuffer
 	},
 	Contexts.String : {
